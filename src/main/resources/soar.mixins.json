@@ -10,7 +10,6 @@
 		"minecraft.client.gui.MixinBossBarHud",
 		"minecraft.client.gui.MixinMultiplayerScreen",
 		"minecraft.client.gui.MixinPackScreen",
-		"minecraft.client.gui.MixinSplashScreen",
 		"minecraft.client.gui.MixinTitleScreen",
 		"minecraft.client.network.MixinAbstractClientPlayerEntity",
 		"minecraft.client.option.MixinKeyBinding",
