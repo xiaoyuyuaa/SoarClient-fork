@@ -1,7 +1,7 @@
 package com.soarclient.management.mod.impl.hud;
 
 import java.io.File;
-import net.minecraft.client.multiplayer.PlayerInfo;
+import net.minecraft.client.network.PlayerListEntry;
 import com.soarclient.Soar;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.RenderSkiaEvent;
@@ -44,7 +44,7 @@ public class BedwarsStatsOverlayMod extends HUDMod {
 
 		if (ServerUtils.isJoin(Server.HYPIXEL)) {
 
-			for (PlayerInfo player : client.getConnection().getOnlinePlayers()) {
+			for (PlayerListEntry player : client.getNetworkHandler().getPlayerList()) {
 
 				if (player.getProfile() == null) {
 					continue;
@@ -56,9 +56,9 @@ public class BedwarsStatsOverlayMod extends HUDMod {
 
 				if (hypixelUser != null && !hypixelUser.getBedwarsLevel().equals("-1")) {
 
-					if (player.getSkin() != null) {
+					if (player.getSkinTextures() != null) {
 
-						var texture = player.getSkin().body().texturePath();
+						var texture = player.getSkinTextures().body().texturePath();
                         Skia.drawPlayerHead(texture, getX() + 5.5F, getY() + offsetY, 12, 12, 2.5F);
 					}
 

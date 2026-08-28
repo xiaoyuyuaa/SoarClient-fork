@@ -4,7 +4,7 @@ import com.soarclient.management.mod.Mod;
 import com.soarclient.management.mod.ModCategory;
 import com.soarclient.management.mod.settings.impl.StringSetting;
 import com.soarclient.skia.font.Icon;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 
 public class NameProtectMod extends Mod {
 
@@ -27,7 +27,7 @@ public class NameProtectMod extends Mod {
             return text;
         }
 
-        Minecraft client = Minecraft.getInstance();
+        MinecraftClient client = MinecraftClient.getInstance();
         if (client.player == null) {
             return text;
         }

@@ -1,26 +1,26 @@
 package com.soarclient.mixin.mixins.minecraft.client;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.soarclient.Soar;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.MouseScrollEvent;
 import com.soarclient.management.mod.impl.hud.CPSDisplayMod;
 import com.soarclient.management.mod.settings.impl.KeybindSetting;
-import net.minecraft.client.MouseHandler;
-import net.minecraft.client.input.MouseButtonInfo;
+import net.minecraft.client.Mouse;
+import net.minecraft.client.input.MouseInput;
+import net.minecraft.client.util.InputUtil;
 import org.lwjgl.glfw.GLFW;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-@Mixin(MouseHandler.class)
+@Mixin(Mouse.class)
 public class MixinMouse {
 
-    @Inject(method = "onButton", at = @At("TAIL"))
-    private void handleMouseButton(long window, MouseButtonInfo buttonInfo, int action, CallbackInfo ci) {
+    @Inject(method = "onMouseButton", at = @At("TAIL"))
+    private void handleMouseButton(long window, MouseInput buttonInfo, int action, CallbackInfo ci) {
         boolean pressed = action == GLFW.GLFW_PRESS;
-        InputConstants.Key key = InputConstants.Type.MOUSE.getOrCreate(buttonInfo.button());
+        InputUtil.Key key = InputUtil.Type.MOUSE.createFromCode(buttonInfo.button());
         for (KeybindSetting setting : Soar.getInstance().getModManager().getKeybindSettings()) {
             if (setting.getKey().equals(key)) {
                 if (pressed) {
@@ -42,7 +42,7 @@ public class MixinMouse {
         }
     }
 
-    @Inject(method = "onScroll", at = @At("HEAD"), cancellable = true)
+    @Inject(method = "onMouseScroll", at = @At("HEAD"), cancellable = true)
     private void handleMouseScroll(long window, double horizontal, double vertical, CallbackInfo ci) {
         MouseScrollEvent event = new MouseScrollEvent(vertical);
         EventBus.getInstance().post(event);

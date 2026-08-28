@@ -1,6 +1,5 @@
 package com.soarclient.skia.image;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import com.soarclient.skia.utils.SkiaUtils;
 import io.github.humbleui.skija.ColorAlphaType;
 import io.github.humbleui.skija.ColorType;
@@ -15,9 +14,10 @@ import java.nio.ByteOrder;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.NativeImageBackedTexture;
+import net.minecraft.util.Identifier;
 
 public class ImageHelper implements AutoCloseable {
 
@@ -29,10 +29,10 @@ public class ImageHelper implements AutoCloseable {
 			return true;
 		}
 
-		Minecraft minecraft = Minecraft.getInstance();
+		MinecraftClient minecraft = MinecraftClient.getInstance();
 		var texture = minecraft.getTextureManager().getTexture(identifier);
-		if (texture instanceof DynamicTexture dynamicTexture) {
-			NativeImage pixels = dynamicTexture.getPixels();
+		if (texture instanceof NativeImageBackedTexture dynamicTexture) {
+			NativeImage pixels = dynamicTexture.getImage();
 			if (pixels != null) {
 				images.put(key, nativeImageToSkijaImage(pixels));
 				return true;
@@ -42,7 +42,7 @@ public class ImageHelper implements AutoCloseable {
 		try {
 			var resource = minecraft.getResourceManager().getResource(identifier);
 			if (resource.isPresent()) {
-				try (InputStream stream = resource.get().open()) {
+				try (InputStream stream = resource.get().getInputStream()) {
 					images.put(key, Image.makeDeferredFromEncodedBytes(stream.readAllBytes()));
 					return true;
 				}
@@ -108,7 +108,7 @@ public class ImageHelper implements AutoCloseable {
 	}
 
 	public static Image nativeImageToSkijaImage(NativeImage nativeImage) {
-		int[] pixels = nativeImage.getPixelsABGR();
+		int[] pixels = nativeImage.copyPixelsAbgr();
 		ByteBuffer byteBuffer = ByteBuffer.allocateDirect(pixels.length * 4).order(ByteOrder.LITTLE_ENDIAN);
 		byteBuffer.asIntBuffer().put(pixels);
 		byte[] byteArray = new byte[pixels.length * 4];

@@ -1,14 +1,14 @@
 package com.soarclient.mixin.mixins.minecraft.client;
 
-
 import com.ibm.icu.impl.data.ResourceReader;
-import com.mojang.blaze3d.platform.IconSet;
-import com.mojang.blaze3d.platform.Window;
+import net.minecraft.client.util.Icons;
+import net.minecraft.client.util.Window;
+import net.minecraft.resource.ResourcePack;
+import net.minecraft.util.Util;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
-import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,18 +20,23 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import net.minecraft.server.packs.PackResources;
 
 @Mixin(Window.class)
 public abstract class MixinWindow {
-	    @Shadow @Final private long handle;
+    @Shadow
+    public abstract long getHandle();
 
     @Inject(method = "setIcon", at = @At(value = "HEAD"), cancellable = true)
-    public void onSetIcon(PackResources resourcePack, IconSet icons, CallbackInfo ci) {
-
+    public void onSetIcon(ResourcePack resourcePack, Icons icons, CallbackInfo ci) {
+        if (Util.getOperatingSystem() == Util.OperatingSystem.OSX) {
+            return;
+        }
         String path = "assets/soar/logo.dark.png";
         try (InputStream inputStream = ResourceReader.class.getClassLoader().getResourceAsStream(path)) {
-            setWindowIcon(handle, inputStream);
+            if (inputStream == null) {
+                return;
+            }
+            setWindowIcon(getHandle(), inputStream);
             ci.cancel();
         } catch (IOException e) {
             e.printStackTrace();
@@ -83,6 +88,4 @@ public abstract class MixinWindow {
         }
         return icon;
     }//感谢来自 Minecraft-Window-Title的代码
-
-
 }

@@ -33,16 +33,16 @@ public class PingDisplayMod extends SimpleHUDMod {
 		if (timer.delay((long) (1000 * refreshTimeSetting.getValue()))) {
 
 			if (ServerUtils.isMultiplayer()) {
-				if (client.getCurrentServer().ping <= 1 && !pinging) {
+				if (client.getCurrentServerEntry().ping <= 1 && !pinging) {
 					Multithreading.runAsync(() -> {
 						pinging = true;
-						ping = MCPing.pingModern().address(client.getCurrentServer().ip).getSync().getPing();
+						ping = MCPing.pingModern().address(client.getCurrentServerEntry().address).getSync().getPing();
 						pinging = false;
 					});
 				} else {
-					ping = client.getCurrentServer().ping;
+					ping = client.getCurrentServerEntry().ping;
 				}
-			} else if (client.hasSingleplayerServer()) {
+			} else if (client.isIntegratedServerRunning()) {
 				ping = 0;
 			}
 

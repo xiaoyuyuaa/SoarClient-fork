@@ -1,7 +1,7 @@
 {
 	"schemaVersion": 1,
 	"id": "soarclient",
-	"version": "8.0.0",
+	"version": "${version}",
 	"name": "SoarClient-fork",
 	"description": "Modern and powerful client for Minecraft PvP",
 	"authors": [
@@ -22,7 +22,7 @@
 	"depends": {
 		"fabricloader": ">=0.19.3",
 		"fabric-api": "*",
-		"minecraft": "~26.2",
-		"java": ">=25"
+		"minecraft": "~1.21.11",
+		"java": ">=21"
 	}
 }

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
-import net.minecraft.client.gui.screens.Screen;
+
 import org.lwjgl.glfw.GLFW;
 
 import com.soarclient.Soar;
@@ -18,6 +18,7 @@ import com.soarclient.management.mod.api.hud.HUDMod;
 
 import it.unimi.dsi.fastutil.floats.FloatArrayList;
 import it.unimi.dsi.fastutil.objects.ObjectObjectImmutablePair;
+import net.minecraft.client.gui.screen.Screen;
 
 public class GuiEditHUD extends SimpleSoarGui {
 
@@ -107,7 +108,7 @@ public class GuiEditHUD extends SimpleSoarGui {
 		if (keyCode == GLFW.GLFW_KEY_ESCAPE) {
 			HUDCore.isEditing = false;
 			Soar.getInstance().getConfigManager().save(ConfigType.MOD);
-			client.gui.setScreen(prevScreen);
+			client.setScreen(prevScreen);
 		}
 	}
 
@@ -193,7 +194,7 @@ public class GuiEditHUD extends SimpleSoarGui {
 
 		FloatArrayList lines = new FloatArrayList();
 
-		lines.add(isHorizontal ? client.getWindow().getGuiScaledWidth() / 2F : client.getWindow().getGuiScaledHeight() / 2F);
+		lines.add(isHorizontal ? client.getWindow().getScaledWidth() / 2F : client.getWindow().getScaledHeight() / 2F);
 
 		mods.stream().filter(
 				mod -> isModInteractable(mod) && !selectedMod.map(pair -> pair.left().equals(mod)).orElse(false))

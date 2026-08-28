@@ -2,8 +2,6 @@
 package com.soarclient.management.mod.impl.player;
 
 import org.lwjgl.glfw.GLFW;
-import net.minecraft.client.input.KeyEvent;
-import com.mojang.blaze3d.platform.InputConstants;
 import com.soarclient.animation.SimpleAnimation;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.ClientTickEvent;
@@ -14,6 +12,8 @@ import com.soarclient.management.mod.settings.impl.BooleanSetting;
 import com.soarclient.management.mod.settings.impl.KeybindSetting;
 import com.soarclient.management.mod.settings.impl.NumberSetting;
 import com.soarclient.skia.font.Icon;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.util.InputUtil;
 
 public class ZoomMod extends Mod {
 
@@ -37,7 +37,7 @@ public class ZoomMod extends Mod {
 	private BooleanSetting smoothCameraSetting = new BooleanSetting("setting.smoothcamera",
 			"setting.smoothcamera.description", Icon.MOTION_BLUR, this, true);
 	private KeybindSetting keybindSetting = new KeybindSetting("setting.keybind", "setting.keybind.description",
-			Icon.KEYBOARD, this, InputConstants.getKey(new KeyEvent(GLFW.GLFW_KEY_C, 0, 0)));
+			Icon.KEYBOARD, this, InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_C, 0, 0)));
 
 	public ZoomMod() {
 		super("mod.zoom.name", "mod.zoom.description", Icon.ZOOM_IN, ModCategory.PLAYER);
@@ -50,13 +50,13 @@ public class ZoomMod extends Mod {
 			if (!active) {
 				active = true;
 				resetFactor();
-				wasSmooth = client.options.smoothCamera;
-				client.options.smoothCamera = smoothCameraSetting.isEnabled();
+				wasSmooth = client.options.smoothCameraEnabled;
+				client.options.smoothCameraEnabled = smoothCameraSetting.isEnabled();
 			}
 		} else if (active) {
 			active = false;
 			setFactor(1);
-			client.options.smoothCamera = wasSmooth;
+			client.options.smoothCameraEnabled = wasSmooth;
 		}
 	};
 

@@ -4,11 +4,12 @@ import com.soarclient.event.EventBus;
 import com.soarclient.event.client.RenderSkiaEvent;
 import com.soarclient.management.mod.api.hud.SimpleHUDMod;
 import com.soarclient.skia.font.Icon;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.core.BlockPos;
-import net.minecraft.core.Holder;
-import net.minecraft.world.level.biome.Biome;
+
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.registry.entry.RegistryEntry;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.world.biome.Biome;
 
 public class WeatherDisplayMod extends SimpleHUDMod {
 
@@ -24,17 +25,17 @@ public class WeatherDisplayMod extends SimpleHUDMod {
 	public String getText() {
 
 		String prefix = "Weather: ";
-		ClientLevel world = client.level;
-		LocalPlayer player = client.player;
-		BlockPos playerPos = player.blockPosition();
-		Holder<Biome> biomeEntry = world.getBiome(playerPos);
+		ClientWorld world = client.world;
+		ClientPlayerEntity player = client.player;
+		BlockPos playerPos = player.getBlockPos();
+		RegistryEntry<Biome> biomeEntry = world.getBiome(playerPos);
 
 		if (world.isThundering()) {
 			return prefix + "Thundering";
 		}
 		
 		if (world.isRaining()) {
-			if (biomeEntry.value().getPrecipitationAt(playerPos, world.getSeaLevel()).equals(Biome.Precipitation.SNOW)) {
+			if (biomeEntry.value().getPrecipitation(playerPos, world.getSeaLevel()).equals(Biome.Precipitation.SNOW)) {
 				return prefix + "Snowing";
 			} else {
 				return prefix + "Raining";
@@ -47,10 +48,10 @@ public class WeatherDisplayMod extends SimpleHUDMod {
 	@Override
 	public String getIcon() {
 
-		ClientLevel world = client.level;
-		LocalPlayer player = client.player;
-		BlockPos playerPos = player.blockPosition();
-		Holder<Biome> biomeEntry = world.getBiome(playerPos);
+		ClientWorld world = client.world;
+		ClientPlayerEntity player = client.player;
+		BlockPos playerPos = player.getBlockPos();
+		RegistryEntry<Biome> biomeEntry = world.getBiome(playerPos);
 
 		String iconFont = Icon.SUNNY;
 
@@ -59,7 +60,7 @@ public class WeatherDisplayMod extends SimpleHUDMod {
 		}
 		
 		if (world.isRaining()) {
-			if (biomeEntry.value().getPrecipitationAt(playerPos, world.getSeaLevel()).equals(Biome.Precipitation.SNOW)) {
+			if (biomeEntry.value().getPrecipitation(playerPos, world.getSeaLevel()).equals(Biome.Precipitation.SNOW)) {
 				iconFont = Icon.WEATHER_SNOWY;
 			} else {
 				iconFont = Icon.RAINY;

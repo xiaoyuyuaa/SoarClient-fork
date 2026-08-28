@@ -2,10 +2,10 @@ package com.soarclient.management.mod.impl.hud;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.world.entity.EquipmentSlot;
-import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.Items;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.entity.EquipmentSlot;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.ClientTickEvent;
 import com.soarclient.event.client.RenderHotbarEvent;
@@ -67,11 +67,11 @@ public class ArmourStatsMod extends HUDMod {
 
         if (shouldShowDummy) {
             mainHandItem = new ItemStack(Items.DIAMOND_SWORD);
-            mainHandItem.setDamageValue(123);
+            mainHandItem.setDamage(123);
             armourItems.add(new ItemStack(Items.DIAMOND_HELMET));
             armourItems.add(new ItemStack(Items.DIAMOND_CHESTPLATE));
         } else if (client.player != null) {
-            ItemStack handStack = client.player.getMainHandItem();
+            ItemStack handStack = client.player.getMainHandStack();
             if (!handStack.isEmpty()) {
                 mainHandItem = handStack;
             }
@@ -104,12 +104,12 @@ public class ArmourStatsMod extends HUDMod {
     };
 
     public final EventBus.EventListener<RenderHotbarEvent> onRenderHotbar = event -> {
-        GuiGraphicsExtractor context = event.getContext();
+        DrawContext context = event.getContext();
         if (context == null) return;
         synchronized (pendingRenders) {
             for (PendingRender pr : pendingRenders) {
                 if (pr.stack != null && !pr.stack.isEmpty()) {
-                    context.item(pr.stack, pr.x, pr.y);
+                    context.drawItem(pr.stack, pr.x, pr.y);
                 }
             }
             pendingRenders.clear();
@@ -170,17 +170,17 @@ public class ArmourStatsMod extends HUDMod {
             return List.of();
         }
         return List.of(
-            client.player.getItemBySlot(EquipmentSlot.FEET),
-            client.player.getItemBySlot(EquipmentSlot.LEGS),
-            client.player.getItemBySlot(EquipmentSlot.CHEST),
-            client.player.getItemBySlot(EquipmentSlot.HEAD)
+            client.player.getEquippedStack(EquipmentSlot.FEET),
+            client.player.getEquippedStack(EquipmentSlot.LEGS),
+            client.player.getEquippedStack(EquipmentSlot.CHEST),
+            client.player.getEquippedStack(EquipmentSlot.HEAD)
         );
     }
 
     private boolean hasValidItems() {
         if (client.player == null) return false;
 
-        ItemStack handStack = client.player.getMainHandItem();
+        ItemStack handStack = client.player.getMainHandStack();
         if (!handStack.isEmpty()) {
             return true;
         }
@@ -211,13 +211,13 @@ public class ArmourStatsMod extends HUDMod {
         }
 
         if (showTextSetting.isEnabled()) {
-            String name = itemStack.getHoverName().getString();
+            String name = itemStack.getName().getString();
             String detailText;
 
             if (itemStack.getCount() > 1) {
                 detailText = "x" + itemStack.getCount();
-            } else if (itemStack.isDamageableItem()) {
-                detailText = (itemStack.getMaxDamage() - itemStack.getDamageValue()) + " / " + itemStack.getMaxDamage();
+            } else if (itemStack.isDamageable()) {
+                detailText = (itemStack.getMaxDamage() - itemStack.getDamage()) + " / " + itemStack.getMaxDamage();
             } else {
                 detailText = "";
             }
@@ -241,10 +241,10 @@ public class ArmourStatsMod extends HUDMod {
         }
 
         for (ItemStack itemStack : allItems) {
-            String name = itemStack.getHoverName().getString();
+            String name = itemStack.getName().getString();
             String detailText = "";
             if (itemStack.getCount() > 1) detailText = "x" + itemStack.getCount();
-            else if (itemStack.isDamageableItem()) detailText = (itemStack.getMaxDamage() - itemStack.getDamageValue()) + " / " + itemStack.getMaxDamage();
+            else if (itemStack.isDamageable()) detailText = (itemStack.getMaxDamage() - itemStack.getDamage()) + " / " + itemStack.getMaxDamage();
 
             Rect nameBounds = Skia.getTextBounds(name, Fonts.getRegular(9));
             float currentItemWidth = nameBounds.getWidth();

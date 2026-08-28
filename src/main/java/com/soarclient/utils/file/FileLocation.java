@@ -1,11 +1,12 @@
 package com.soarclient.utils.file;
 
 import java.io.File;
-import net.minecraft.client.Minecraft;
+
+import net.minecraft.client.MinecraftClient;
 
 public class FileLocation {
 
-	public static final File MAIN_DIR = new File(Minecraft.getInstance().gameDirectory, "soar");
+	public static final File MAIN_DIR = new File(MinecraftClient.getInstance().runDirectory, "soar");
 	public static final File MUSIC_DIR = new File(MAIN_DIR, "music");
 	public static final File CACHE_DIR = new File(MAIN_DIR, "cache");
 	public static final File CONFIG_DIR = new File(MAIN_DIR, "config");

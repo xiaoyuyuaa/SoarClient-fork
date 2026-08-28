@@ -1,46 +1,61 @@
-## SoarClient-Fork
-- This is not an official SoarClient repository
-- If you want to see the original Soar repository, please go to the [SoarClient repo](https://www.github.com/Soar-Client/SoarClient) 
-- it is a SoarClient's fork 
-- We will add more Modules and support
+# SoarClient-Fork
 
-# License
-- **When you use this client, it will automatically be considered as your agreement to the MIT License**
-- **If you want to use this client to record videos or make modifications, please include a link to the source repository**
-  
-# Update stopped(I guess)
+SoarClient-Fork is an unofficial SoarClient fork for Minecraft 1.21.11. See the
+[original SoarClient repository](https://github.com/Soar-Client/SoarClient) for the
+upstream project.
 
-## Build Instructions 
+Using or modifying this client means accepting the terms of the [MIT License](LICENSE).
+If you publish a video or a modified build, please link back to this repository.
 
-### Prerequisites 
+## Requirements
 
-- **Java 25** or higher
-- **Git** (for cloning the repository
+- Java 21
+- Git
 
-## Build Commands 
-#### Linux/macOS:
+## Build
+
+Clone the repository, then run a clean Gradle build:
+
 ```bash
-# Clone the repository  
-git clone https://github.com/Eatgrapes/SoarClient-fork.git  
-cd SoarClient-fork  
-  
-# Grant execute permission  
-chmod +x gradlew  
-  
-# Build the project  
-./gradlew build
+git clone https://github.com/xiaoyuyuaa/SoarClient-fork.git
+cd SoarClient-fork
+chmod +x gradlew
+./gradlew clean build
 ```
-#### Windows:
+
+On Windows, use `gradlew.bat clean build` instead. The distributable mod is written
+to `build/libs/soarclient-fork-<version>.jar`; the similarly named `-sources.jar`
+is only for source browsing.
+
+## Launch a development client
+
+Run the Fabric development client from the repository:
+
 ```bash
-# Clone the repository  
-git clone https://github.com/Eatgrapes/SoarClient-fork.git  
-cd SoarClient-fork  
-  
-# Build the project  
-gradlew.bat build
+./gradlew runClient
 ```
-### Build Output 
 
-After building, the JAR files will be located in the **build/libs/** directory 
+On Windows, use `gradlew.bat runClient`. The first launch downloads Minecraft and
+Fabric dependencies. Runtime files, logs, saves, and options are stored in `run/`.
+Stop the client normally from Minecraft or press Ctrl+C in the Gradle terminal.
 
+To launch the release JAR in a normal Minecraft installation:
 
+1. Install Fabric Loader 0.19.3 for Minecraft 1.21.11.
+2. Put `soarclient-fork-<version>.jar` and Fabric API 0.141.6+1.21.11 in the
+   installation's `mods` directory.
+3. Start the Minecraft 1.21.11 Fabric profile with Java 21.
+
+ViaFabricPlus and the client's native runtime libraries are bundled in the mod JAR.
+
+## Release
+
+1. Update `mod_version` in `gradle.properties`.
+2. Run `./gradlew clean build`, then `./gradlew runClient` and verify the title screen.
+3. Merge the change to `main`.
+4. Create and publish a GitHub release targeting `main`, using the same version as
+   the tag (for example, `8.0.0`).
+
+The release workflow builds with Java 21, uploads the build artifacts, attaches the
+distributable JAR to the GitHub release, and updates the configured website repository
+when `TARGET_REPO_TOKEN` is available.

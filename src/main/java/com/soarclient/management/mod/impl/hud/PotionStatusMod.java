@@ -12,12 +12,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-import net.minecraft.client.resources.language.I18n;
-import net.minecraft.core.registries.BuiltInRegistries;
-import net.minecraft.resources.Identifier;
-import net.minecraft.world.effect.MobEffect;
-import net.minecraft.world.effect.MobEffectInstance;
-import net.minecraft.world.effect.MobEffects;
+
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.ClientTickEvent;
 import com.soarclient.event.client.RenderSkiaEvent;
@@ -29,6 +24,13 @@ import com.soarclient.skia.Skia;
 import com.soarclient.skia.font.Fonts;
 import com.soarclient.skia.font.Icon;
 import com.soarclient.utils.ColorUtils;
+
+import net.minecraft.client.resource.language.I18n;
+import net.minecraft.entity.effect.StatusEffect;
+import net.minecraft.entity.effect.StatusEffectInstance;
+import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.registry.Registries;
+import net.minecraft.util.Identifier;
 import io.github.humbleui.types.Rect;
 
 public class PotionStatusMod extends HUDMod {
@@ -73,12 +75,12 @@ public class PotionStatusMod extends HUDMod {
         }
     };
 
-    private Collection<MobEffectInstance> potions;
+    private Collection<StatusEffectInstance> potions;
 
     private float animatedWidth, animatedHeight;
     private float targetWidth, targetHeight;
 
-    private final Map<MobEffect, Integer> potionMaxDurations = new HashMap<>();
+    private final Map<StatusEffect, Integer> potionMaxDurations = new HashMap<>();
     private final List<AnimatedPotionEffect> animatedEffects = new ArrayList<>();
     private final List<Particle> particles = new ArrayList<>();
     private final Random random = new Random();
@@ -99,36 +101,36 @@ public class PotionStatusMod extends HUDMod {
 
     public final EventBus.EventListener<ClientTickEvent> onClientTick = event -> {
 
-        Collection<MobEffectInstance> currentPotions;
+        Collection<StatusEffectInstance> currentPotions;
         if (HUDCore.isEditing) {
             currentPotions = Arrays.asList(
-                new MobEffectInstance(MobEffects.SPEED, 1200, 0),
-                new MobEffectInstance(MobEffects.REGENERATION, 600, 1)
+                new StatusEffectInstance(StatusEffects.SPEED, 1200, 0),
+                new StatusEffectInstance(StatusEffects.REGENERATION, 600, 1)
             );
         } else {
             if (client.player != null) {
-                currentPotions = client.player.getActiveEffects();
+                currentPotions = client.player.getStatusEffects();
             } else {
                 currentPotions = Collections.emptyList();
             }
         }
 
-        for (MobEffectInstance effect : currentPotions) {
-            if (!potionMaxDurations.containsKey(effect.getEffect().value()) || effect.getDuration() > potionMaxDurations.get(effect.getEffect().value())) {
-                potionMaxDurations.put(effect.getEffect().value(), effect.getDuration());
+        for (StatusEffectInstance effect : currentPotions) {
+            if (!potionMaxDurations.containsKey(effect.getEffectType().value()) || effect.getDuration() > potionMaxDurations.get(effect.getEffectType().value())) {
+                potionMaxDurations.put(effect.getEffectType().value(), effect.getDuration());
             }
         }
 
         if (displayModeSetting.getOption().equals("ui.Modern")) {
             for (AnimatedPotionEffect ape : animatedEffects) {
-                if (currentPotions.stream().noneMatch(p -> p.getEffect().value().equals(ape.effectType))) {
+                if (currentPotions.stream().noneMatch(p -> p.getEffectType().value().equals(ape.effectType))) {
                     ape.isFadingOut = true;
                 }
             }
 
-            for (MobEffectInstance p : currentPotions) {
+            for (StatusEffectInstance p : currentPotions) {
                 Optional<AnimatedPotionEffect> existing = animatedEffects.stream()
-                    .filter(ape -> ape.effectType.equals(p.getEffect().value()))
+                    .filter(ape -> ape.effectType.equals(p.getEffectType().value()))
                     .findFirst();
 
                 if (existing.isPresent()) {
@@ -207,7 +209,7 @@ public class PotionStatusMod extends HUDMod {
             float offsetY = 3;
             animatedEffects.removeIf(AnimatedPotionEffect::isDead);
 
-            animatedEffects.sort(Comparator.comparing(ape -> I18n.get(ape.effect.getDescriptionId())));
+            animatedEffects.sort(Comparator.comparing(ape -> I18n.translate(ape.effect.getTranslationKey())));
 
             for (AnimatedPotionEffect ape : animatedEffects) {
                 if (!ape.isFadingOut) {
@@ -220,7 +222,7 @@ public class PotionStatusMod extends HUDMod {
                 if (ape.justCreated && ape.alpha > 0.1f) {
                     float iconCenterX = getX() + 3 + ape.offsetX + 5 + 9;
                     float iconCenterY = ape.y + 14;
-                    spawnParticles(iconCenterX, iconCenterY, new Color(ape.effect.getEffect().value().getColor()));
+                    spawnParticles(iconCenterX, iconCenterY, new Color(ape.effect.getEffectType().value().getColor()));
                     ape.justCreated = false;
                 }
             }
@@ -233,7 +235,7 @@ public class PotionStatusMod extends HUDMod {
                 int ySize = compactSetting.isEnabled() ? 16 : 23;
                 int offsetY = 16;
 
-                for (MobEffectInstance potionEffect : potions) {
+                for (StatusEffectInstance potionEffect : potions) {
                     drawPotionEffect(potionEffect, offsetY);
                     offsetY += ySize;
                 }
@@ -245,18 +247,18 @@ public class PotionStatusMod extends HUDMod {
     }
 
     private void drawModernPotionEffect(AnimatedPotionEffect ape) {
-        MobEffectInstance potionEffect = ape.effect;
-        MobEffect effect = potionEffect.getEffect().value();
+        StatusEffectInstance potionEffect = ape.effect;
+        StatusEffect effect = potionEffect.getEffectType().value();
         float alpha = ape.alpha;
         float y = ape.y;
         float x = getX() + 3 + ape.offsetX;
 
         if (alpha <= 0) return;
 
-        String name = I18n.get(effect.getDescriptionId());
+        String name = I18n.translate(effect.getTranslationKey());
 
         if (potionEffect.getAmplifier() > 0) {
-            name = name + " " + I18n.get("enchantment.level." + (potionEffect.getAmplifier() + 1));
+            name = name + " " + I18n.translate("enchantment.level." + (potionEffect.getAmplifier() + 1));
         }
 
         String time = formatDuration(potionEffect);
@@ -282,7 +284,7 @@ public class PotionStatusMod extends HUDMod {
         float iconX = x + 5 + (baseIconSize - iconSize) / 2.0f;
         float iconY = y + (height / 2) - (iconSize / 2);
 
-        Identifier effectId = BuiltInRegistries.MOB_EFFECT.getKey(effect);
+        Identifier effectId = Registries.STATUS_EFFECT.getId(effect);
         String effectName = effectId.getPath().toLowerCase().replace(" ", "_");
         String texturePath = "textures/mob_effect/" + effectName + ".png";
         try {
@@ -296,8 +298,8 @@ public class PotionStatusMod extends HUDMod {
         Skia.drawText(time, textX, y + 16, ColorUtils.applyAlpha(new Color(200, 200, 200), alpha), Fonts.getRegular(8));
     }
 
-    private void drawPotionEffect(MobEffectInstance potionEffect, int offsetY) {
-        MobEffect effect = potionEffect.getEffect().value();
+    private void drawPotionEffect(StatusEffectInstance potionEffect, int offsetY) {
+        StatusEffect effect = potionEffect.getEffectType().value();
         float offsetX = 0;
 
         if (showIconSetting.isEnabled()) {
@@ -308,10 +310,10 @@ public class PotionStatusMod extends HUDMod {
         }
 
         if (showTextSetting.isEnabled()) {
-            String name = I18n.get(effect.getDescriptionId());
+            String name = I18n.translate(effect.getTranslationKey());
 
             if (potionEffect.getAmplifier() > 0) {
-                name = name + " " + I18n.get("enchantment.level." + (potionEffect.getAmplifier() + 1));
+                name = name + " " + I18n.translate("enchantment.level." + (potionEffect.getAmplifier() + 1));
             }
 
             String time = formatDuration(potionEffect);
@@ -325,8 +327,8 @@ public class PotionStatusMod extends HUDMod {
         }
     }
 
-    private void drawPotionIcon(MobEffect effect, int offsetY) {
-        Identifier effectId = BuiltInRegistries.MOB_EFFECT.getKey(effect);
+    private void drawPotionIcon(StatusEffect effect, int offsetY) {
+        Identifier effectId = Registries.STATUS_EFFECT.getId(effect);
         String effectName = effectId.getPath().toLowerCase().replace(" ", "_");
         String texturePath = "textures/mob_effect/" + effectName + ".png";
         float iconSize = compactSetting.isEnabled() ? 13 : 18;
@@ -343,7 +345,7 @@ public class PotionStatusMod extends HUDMod {
         Skia.drawRoundedRect(x, y, size, size, 2, this.getDesign().getTextColor().darker());
     }
 
-    private String formatDuration(MobEffectInstance effect) {
+    private String formatDuration(StatusEffectInstance effect) {
         int duration = effect.getDuration();
         if (duration == -1) {
             return "∞";
@@ -359,12 +361,12 @@ public class PotionStatusMod extends HUDMod {
             return;
         }
 
-        for (MobEffectInstance potionEffect : potions) {
-            MobEffect effect = potionEffect.getEffect().value();
-            String name = I18n.get(effect.getDescriptionId());
+        for (StatusEffectInstance potionEffect : potions) {
+            StatusEffect effect = potionEffect.getEffectType().value();
+            String name = I18n.translate(effect.getTranslationKey());
 
             if (potionEffect.getAmplifier() > 0) {
-                name = name + " " + I18n.get("enchantment.level." + (potionEffect.getAmplifier() + 1));
+                name = name + " " + I18n.translate("enchantment.level." + (potionEffect.getAmplifier() + 1));
             }
 
             String time = formatDuration(potionEffect);
@@ -415,8 +417,8 @@ public class PotionStatusMod extends HUDMod {
     }
 
     private static class AnimatedPotionEffect {
-        MobEffectInstance effect;
-        final MobEffect effectType;
+        StatusEffectInstance effect;
+        final StatusEffect effectType;
         float y;
         float alpha;
         float offsetX;
@@ -424,9 +426,9 @@ public class PotionStatusMod extends HUDMod {
         boolean justCreated = true;
         float targetY;
 
-        AnimatedPotionEffect(MobEffectInstance effect, float initialY) {
+        AnimatedPotionEffect(StatusEffectInstance effect, float initialY) {
             this.effect = effect;
-            this.effectType = effect.getEffect().value();
+            this.effectType = effect.getEffectType().value();
             this.y = initialY;
             this.targetY = initialY;
             this.alpha = 0;

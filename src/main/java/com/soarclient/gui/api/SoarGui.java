@@ -16,7 +16,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.client.gui.screen.Screen;
 
 public abstract class SoarGui extends SimpleSoarGui {
 
@@ -61,7 +61,7 @@ public abstract class SoarGui extends SimpleSoarGui {
 		ColorPalette palette = Soar.getInstance().getColorManager().getPalette();
 
 		if (ModMenuSettings.getInstance().getBlurSetting().isEnabled()) {
-			Skia.drawBlur(0, 0, client.getWindow().getWidth(), client.getWindow().getHeight(),
+			Skia.drawBlur(0, 0, client.getWindow().getFramebufferWidth(), client.getWindow().getFramebufferHeight(),
 					ModMenuSettings.getInstance().getBlurIntensitySetting().getValue(), (float) inOutAnimation.getValue());
 		}
 
@@ -123,7 +123,7 @@ public abstract class SoarGui extends SimpleSoarGui {
 		Skia.restore();
 
 		if (inOutAnimation.getEnd() == 0 && inOutAnimation.isFinished()) {
-			client.gui.setScreen(nextScreen);
+			client.setScreen(nextScreen);
 			nextScreen = null;
 		}
 	}
