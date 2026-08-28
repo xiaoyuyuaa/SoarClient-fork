@@ -12,7 +12,7 @@ import io.github.humbleui.types.Point;
 import io.github.humbleui.types.RRect;
 import io.github.humbleui.types.Rect;
 import java.util.function.Consumer;
-import net.minecraft.resources.Identifier;
+import net.minecraft.util.Identifier;
 
 public class Skia {
 
@@ -249,7 +249,7 @@ public class Skia {
 		}
 	}
     public static void drawMinecraftImage(String path, float x, float y, float width, float height) {
-        Identifier identifier = Identifier.fromNamespaceAndPath("minecraft", path);
+        Identifier identifier = Identifier.of("minecraft", path);
 
         if (imageHelper.load(identifier)) {
             getCanvas().drawImageRect(imageHelper.get(identifier), Rect.makeXYWH(x, y, width, height));

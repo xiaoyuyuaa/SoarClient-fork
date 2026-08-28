@@ -1,8 +1,10 @@
 package com.soarclient.gui.edithud.api;
 
 import java.awt.Color;
-import net.minecraft.client.Minecraft;
+
 import com.soarclient.skia.Skia;
+
+import net.minecraft.client.MinecraftClient;
 
 public class SnappingLine {
 
@@ -33,15 +35,15 @@ public class SnappingLine {
 
 	public void drawLine(float lineWidth, boolean isX) {
 
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = MinecraftClient.getInstance();
 		Color color = Color.WHITE;
 
 		float pos = (float) (line - lineWidth / 2f);
 
 		if (isX) {
-			Skia.drawLine(pos, 0, pos, client.getWindow().getGuiScaledHeight(), lineWidth, color);
+			Skia.drawLine(pos, 0, pos, client.getWindow().getScaledHeight(), lineWidth, color);
 		} else {
-			Skia.drawLine(0, pos, client.getWindow().getGuiScaledWidth(), pos, lineWidth, color);
+			Skia.drawLine(0, pos, client.getWindow().getScaledWidth(), pos, lineWidth, color);
 		}
 	}
 

@@ -1,11 +1,12 @@
 package com.soarclient.ui.component;
 
 import com.soarclient.ui.component.handler.ComponentHandler;
-import net.minecraft.client.Minecraft;
+
+import net.minecraft.client.MinecraftClient;
 
 public class Component {
 
-	protected Minecraft client = Minecraft.getInstance();
+	protected MinecraftClient client = MinecraftClient.getInstance();
 	protected ComponentHandler handler;
 	protected float x, y, width, height;
 

@@ -3,13 +3,14 @@ package com.soarclient.skia.font;
 import com.soarclient.management.mod.impl.settings.ModMenuSettings;
 import com.soarclient.utils.language.I18n;
 import io.github.humbleui.skija.*;
+import net.minecraft.client.MinecraftClient;
+
 import java.io.File;
 import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import net.minecraft.client.Minecraft;
 
 public class Fonts {
 
@@ -30,7 +31,7 @@ public class Fonts {
 
     private static void loadCustomFonts() {
         try {
-            fontDir = new File(Minecraft.getInstance().gameDirectory, "soar/Font");
+            fontDir = new File(MinecraftClient.getInstance().runDirectory, "soar/Font");
             if (!fontDir.exists()) {
                 fontDir.mkdirs();
             }

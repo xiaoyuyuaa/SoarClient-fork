@@ -10,11 +10,11 @@ import com.soarclient.skia.font.Icon;
 import com.soarclient.skia.font.Fonts;
 import com.soarclient.skia.Skia;
 import java.awt.Color;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.gui.GuiGraphicsExtractor;
-import net.minecraft.util.Mth;
-import net.minecraft.world.entity.player.Player;
-import net.minecraft.world.item.ItemStack;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.DrawContext;
+import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.MathHelper;
 
 @SuppressWarnings("all")
 public class ModernHotBarMod extends HUDMod {
@@ -55,8 +55,8 @@ public class ModernHotBarMod extends HUDMod {
 
     @SuppressWarnings("unused")
     public final EventBus.EventListener<RenderSkiaEvent> onRenderSkia = event -> {
-        Minecraft mc = Minecraft.getInstance();
-        Player player = mc.player;
+        MinecraftClient mc = MinecraftClient.getInstance();
+        PlayerEntity player = mc.player;
         if (player == null || player.isSpectator()) return;
 
         long now = System.nanoTime();
@@ -65,8 +65,8 @@ public class ModernHotBarMod extends HUDMod {
 
         handleAnimation(player, delta);
 
-        int scaledWidth = mc.getWindow().getGuiScaledWidth();
-        int scaledHeight = mc.getWindow().getGuiScaledHeight();
+        int scaledWidth = mc.getWindow().getScaledWidth();
+        int scaledHeight = mc.getWindow().getScaledHeight();
 
         float hotbarX = scaledWidth / 2f - 91f;
         float hotbarY = scaledHeight - 22f;
@@ -80,7 +80,7 @@ public class ModernHotBarMod extends HUDMod {
         float slotX = animatedSlotX;
         drawBackground(hotbarX + slotX, hotbarY, 22f, 22f);
 
-        if (!player.getOffhandItem().isEmpty()) {
+        if (!player.getOffHandStack().isEmpty()) {
             float offhandSlotX = hotbarX - 22f - 4f;
             drawBackground(offhandSlotX, hotbarY, 22f, 22f);
         }
@@ -122,7 +122,7 @@ public class ModernHotBarMod extends HUDMod {
         if (!player.isCreative()) {
             float absorption = player.getAbsorptionAmount();
             float maxHealth = Math.max(1f, player.getMaxHealth());
-            float absorptionPercentage = Mth.clamp(absorption / maxHealth, 0.0f, 1.0f);
+            float absorptionPercentage = MathHelper.clamp(absorption / maxHealth, 0.0f, 1.0f);
             float absorptionFillW = barWidth * absorptionPercentage;
             float absorptionTarget = Math.max(0f, absorptionFillW);
             float tAbs = Math.min(1f, delta / Math.max(0.0001f, BAR_ANIM_DURATION));
@@ -142,7 +142,7 @@ public class ModernHotBarMod extends HUDMod {
             }
 
             float health = player.getHealth();
-            float healthPercentage = Mth.clamp(health / maxHealth, 0.0f, 1.0f);
+            float healthPercentage = MathHelper.clamp(health / maxHealth, 0.0f, 1.0f);
             float healthFillW = barWidth * healthPercentage;
             float healthTarget = Math.max(0f, healthFillW);
             float tHealth = Math.min(1f, delta / Math.max(0.0001f, BAR_ANIM_DURATION));
@@ -162,9 +162,9 @@ public class ModernHotBarMod extends HUDMod {
             }
         }
 
-        if (showArmorBar.isEnabled() && player.getArmorValue() > 0 && !player.isCreative()) {
-            float armor = player.getArmorValue();
-            float armorPercentage = Mth.clamp(armor / 20.0f, 0.0f, 1.0f);
+        if (showArmorBar.isEnabled() && player.getArmor() > 0 && !player.isCreative()) {
+            float armor = player.getArmor();
+            float armorPercentage = MathHelper.clamp(armor / 20.0f, 0.0f, 1.0f);
             float armorFillW = barWidth * armorPercentage;
             float armorTarget = Math.max(0f, armorFillW);
             float tArmor = Math.min(1f, delta / Math.max(0.0001f, BAR_ANIM_DURATION));
@@ -179,14 +179,14 @@ public class ModernHotBarMod extends HUDMod {
                 }
             }
             if (showNumericalValues.isEnabled()) {
-                String armorText = String.valueOf(player.getArmorValue());
+                String armorText = String.valueOf(player.getArmor());
                 Skia.drawHeightCenteredText(armorText, healthX + 4f, armorBarY + barHeight / 2f, Color.WHITE, Fonts.getRegular(9f));
             }
         }
 
         if (!player.isCreative()) {
-            float hunger = player.getFoodData().getFoodLevel();
-            float hungerPercentage = Mth.clamp(hunger / 20.0f, 0.0f, 1.0f);
+            float hunger = player.getHungerManager().getFoodLevel();
+            float hungerPercentage = MathHelper.clamp(hunger / 20.0f, 0.0f, 1.0f);
             float hungerFillW = barWidth * hungerPercentage;
             float hungerTarget = Math.max(0f, hungerFillW);
             float tHunger = Math.min(1f, delta / Math.max(0.0001f, BAR_ANIM_DURATION));
@@ -210,7 +210,7 @@ public class ModernHotBarMod extends HUDMod {
         finish();
     };
 
-    private void handleAnimation(Player player, float delta) {
+    private void handleAnimation(PlayerEntity player, float delta) {
         int currentSlot = player.getInventory().getSelectedSlot();
         if (visualSelectedSlot == -1) {
             visualSelectedSlot = currentSlot;
@@ -245,7 +245,7 @@ public class ModernHotBarMod extends HUDMod {
 
     @SuppressWarnings("unused")
     public final EventBus.EventListener<RenderSkiaPostEvent> onRenderSkiaPost = event -> {
-        Minecraft mc = Minecraft.getInstance();
+        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
 
         float drawX = getX();
@@ -254,7 +254,7 @@ public class ModernHotBarMod extends HUDMod {
         Skia.save();
         try {
             for (int i = 0; i < 9; i++) {
-                ItemStack stack = mc.player.getInventory().getItem(i);
+                ItemStack stack = mc.player.getInventory().getStack(i);
                 if (!stack.isEmpty() && stack.getCount() > 1) {
                     String countText = String.valueOf(stack.getCount());
                     float textWidth = Skia.getTextBounds(countText, Fonts.getRegular(9f)).getWidth();
@@ -265,7 +265,7 @@ public class ModernHotBarMod extends HUDMod {
                 }
             }
 
-            ItemStack offhand = mc.player.getOffhandItem();
+            ItemStack offhand = mc.player.getOffHandStack();
             if (!offhand.isEmpty() && offhand.getCount() > 1) {
                 String countText = String.valueOf(offhand.getCount());
                 float textWidth = Skia.getTextBounds(countText, Fonts.getRegular(9f)).getWidth();
@@ -282,9 +282,9 @@ public class ModernHotBarMod extends HUDMod {
 
     @SuppressWarnings("unused")
     public final EventBus.EventListener<RenderHotbarEvent> onRenderHotbarEvent = event -> {
-        GuiGraphicsExtractor context = event.getContext();
+        DrawContext context = event.getContext();
         if (context == null) return;
-        Minecraft mc = Minecraft.getInstance();
+        MinecraftClient mc = MinecraftClient.getInstance();
         if (mc.player == null) return;
 
         event.setCancelled(true);
@@ -293,7 +293,7 @@ public class ModernHotBarMod extends HUDMod {
         float drawY = getY();
 
         for (int i = 0; i < 9; i++) {
-            ItemStack stack = mc.player.getInventory().getItem(i);
+            ItemStack stack = mc.player.getInventory().getStack(i);
             if (!stack.isEmpty()) {
                 int itemX = (int)(drawX + i * 20f + 3);
                 int itemY = (int)(drawY + 3);
@@ -301,7 +301,7 @@ public class ModernHotBarMod extends HUDMod {
             }
         }
 
-        ItemStack offhand = mc.player.getOffhandItem();
+        ItemStack offhand = mc.player.getOffHandStack();
         if (!offhand.isEmpty()) {
             float offhandSlotX = drawX - 22f - 4f;
             int offhandX = (int)(offhandSlotX + 3);
@@ -310,9 +310,9 @@ public class ModernHotBarMod extends HUDMod {
         }
     };
 
-    private void renderItem(ItemStack stack, int x, int y, GuiGraphicsExtractor context) {
+    private void renderItem(ItemStack stack, int x, int y, DrawContext context) {
         if (context != null) {
-            context.item(stack, x, y);
+            context.drawItem(stack, x, y);
         }
     }
 

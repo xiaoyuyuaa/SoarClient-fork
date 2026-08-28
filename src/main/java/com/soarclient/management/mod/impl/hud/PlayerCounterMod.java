@@ -17,7 +17,7 @@ public class PlayerCounterMod extends SimpleHUDMod {
 
 	@Override
 	public String getText() {
-		return "Player: " + client.level.players().size();
+		return "Player: " + client.world.getPlayers().size();
 	}
 
 	@Override

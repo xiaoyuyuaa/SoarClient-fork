@@ -1,7 +1,6 @@
 package com.soarclient.mixin.mixins.minecraft.client;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.mojang.blaze3d.platform.Window;
 import com.soarclient.Soar;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.ClientTickEvent;
@@ -14,14 +13,15 @@ import com.soarclient.mixin.interfaces.IMixinMinecraftClient;
 import com.soarclient.skia.Skia;
 import com.soarclient.skia.context.SkiaContext;
 import java.io.File;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.Options;
-import net.minecraft.client.main.GameConfig;
-import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.InteractionHand;
-import net.minecraft.world.phys.BlockHitResult;
-import net.minecraft.world.phys.HitResult;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.RunArgs;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.option.GameOptions;
+import net.minecraft.client.util.Window;
+import net.minecraft.client.world.ClientWorld;
+import net.minecraft.util.Hand;
+import net.minecraft.util.hit.BlockHitResult;
+import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -31,57 +31,57 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-@Mixin(value = Minecraft.class, priority = 300)
+@Mixin(value = MinecraftClient.class, priority = 300)
 public abstract class MixinMinecraftClient implements IMixinMinecraftClient {
 
     @Shadow @Final private Window window;
-    @Shadow private int missTime;
-    @Shadow public Options options;
-    @Shadow public HitResult hitResult;
-    @Shadow public ClientLevel level;
-    @Shadow public LocalPlayer player;
+    @Shadow private int attackCooldown;
+    @Shadow public GameOptions options;
+    @Shadow public HitResult crosshairTarget;
+    @Shadow public ClientWorld world;
+    @Shadow public ClientPlayerEntity player;
 
     @Unique
     private File assetDir;
 
-    @Inject(method = "<init>(Lnet/minecraft/client/main/GameConfig;)V", at = @At("TAIL"))
-    private void onInit(GameConfig config, CallbackInfo ci) {
-        assetDir = config.location.assetDirectory;
+    @Inject(method = "<init>(Lnet/minecraft/client/RunArgs;)V", at = @At("TAIL"))
+    private void onInit(RunArgs config, CallbackInfo ci) {
+        assetDir = config.directories.assetDir;
         Soar.getInstance().start();
     }
 
-    @Inject(method = "stop", at = @At("HEAD"))
+    @Inject(method = "scheduleStop", at = @At("HEAD"))
     private void onStop(CallbackInfo ci) {
         Soar.getInstance().getConfigManager().save(ConfigType.MOD);
     }
 
-    @Inject(method = "continueAttack(Z)V", at = @At("HEAD"))
+    @Inject(method = "handleBlockBreaking(Z)V", at = @At("HEAD"))
     private void handleBlockBreaking(boolean breaking, CallbackInfo ci) {
         OldAnimationsMod mod = OldAnimationsMod.getInstance();
         if (mod == null || !mod.isEnabled() || !mod.isOldBreaking()) {
             return;
         }
-        if (!options.keyAttack.isDown() || !options.keyUse.isDown()) {
+        if (!options.attackKey.isPressed() || !options.useKey.isPressed()) {
             return;
         }
-        if (!breaking || !(hitResult instanceof BlockHitResult blockHitResult) || level == null || player == null) {
+        if (!breaking || !(crosshairTarget instanceof BlockHitResult blockHitResult) || world == null || player == null) {
             return;
         }
-        if (!level.getBlockState(blockHitResult.getBlockPos()).isAir()) {
-            level.addBreakingBlockEffect(blockHitResult.getBlockPos(), blockHitResult.getDirection());
-            ((IMixinLivingEntity) player).fakeSwingHand(InteractionHand.MAIN_HAND);
+        if (!world.getBlockState(blockHitResult.getBlockPos()).isAir()) {
+            world.spawnBlockBreakingParticle(blockHitResult.getBlockPos(), blockHitResult.getSide());
+            ((IMixinLivingEntity) player).fakeSwingHand(Hand.MAIN_HAND);
         }
     }
 
-    @Inject(method = "startAttack()Z", at = @At("HEAD"))
+    @Inject(method = "doAttack()Z", at = @At("HEAD"))
     private void onHitDelayFix(CallbackInfoReturnable<Boolean> cir) {
         HitDelayFixMod mod = HitDelayFixMod.getInstance();
         if (mod != null && mod.isEnabled()) {
-            missTime = 0;
+            attackCooldown = 0;
         }
     }
 
-    @ModifyReturnValue(method = "createTitle()Ljava/lang/String;", at = @At("RETURN"))
+    @ModifyReturnValue(method = "getWindowTitle()Ljava/lang/String;", at = @At("RETURN"))
     private String customizeWindowTitle(String original) {
         return Soar.getInstance().getName() + " Client v" + Soar.getInstance().getVersion() + " for " + original;
     }
@@ -91,12 +91,12 @@ public abstract class MixinMinecraftClient implements IMixinMinecraftClient {
         EventBus.getInstance().post(new ClientTickEvent());
     }
 
-    @Inject(method = "runTick(Z)V", at = @At("HEAD"))
+    @Inject(method = "render(Z)V", at = @At("HEAD"))
     private void onGameLoop(boolean advanceGameTime, CallbackInfo ci) {
         EventBus.getInstance().post(new GameLoopEvent());
     }
 
-    @Inject(method = "framebufferSizeChanged()V", at = @At("HEAD"))
+    @Inject(method = "onResolutionChanged()V", at = @At("HEAD"))
     private void onResolutionChanged(CallbackInfo ci) {
         SkiaContext.invalidate();
     }

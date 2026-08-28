@@ -1,14 +1,8 @@
 package com.soarclient.skia.context;
 
-import com.mojang.blaze3d.opengl.GlTexture;
-import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.GpuDevice;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuTexture;
-import com.mojang.blaze3d.vulkan.VulkanCommandEncoder;
-import com.mojang.blaze3d.vulkan.VulkanConst;
-import com.mojang.blaze3d.vulkan.VulkanDevice;
-import com.mojang.blaze3d.vulkan.VulkanGpuTexture;
 import com.soarclient.logger.SoarLogger;
 import io.github.humbleui.skija.BackendRenderTarget;
 import io.github.humbleui.skija.BackendTexture;
@@ -28,14 +22,14 @@ import io.github.humbleui.skija.SamplingMode;
 import io.github.humbleui.skija.Shader;
 import io.github.humbleui.skija.Surface;
 import io.github.humbleui.skija.SurfaceOrigin;
-import io.github.humbleui.skija.VkImageInfo;
-import io.github.humbleui.skija.VulkanAlloc;
 import io.github.humbleui.types.Rect;
 import java.nio.ByteBuffer;
 import java.util.ArrayDeque;
 import java.util.Queue;
 import java.util.function.Consumer;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.Framebuffer;
+import net.minecraft.client.texture.GlTexture;
 import org.lwjgl.opengl.ARBClipControl;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -45,12 +39,6 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL31;
 import org.lwjgl.opengl.GL33;
-import org.lwjgl.system.MemoryStack;
-import org.lwjgl.vulkan.VK;
-import org.lwjgl.vulkan.VK12;
-import org.lwjgl.vulkan.VkCommandBuffer;
-import org.lwjgl.vulkan.VkImageMemoryBarrier;
-import org.lwjgl.vulkan.VkImageSubresourceRange;
 
 public final class SkiaContext {
 
@@ -85,8 +73,8 @@ public final class SkiaContext {
 			return false;
 		}
 
-		Minecraft minecraft = Minecraft.getInstance();
-		if (minecraft.gameRenderer == null) {
+		MinecraftClient client = MinecraftClient.getInstance();
+		if (client.gameRenderer == null) {
 			return false;
 		}
 
@@ -99,10 +87,10 @@ public final class SkiaContext {
 				unavailable = true;
 				return false;
 			}
-			SoarLogger.info("Skija", "Using " + currentDevice.getDeviceInfo().backendName() + " backend");
+			SoarLogger.info("Skija", "Using " + currentDevice.getBackendName() + " backend");
 		}
 
-		RenderTarget target = minecraft.gameRenderer.mainRenderTarget();
+		Framebuffer target = client.getFramebuffer();
 		try {
 			canvas = backend.beginFrame(target);
 			frameActive = canvas != null;
@@ -199,18 +187,12 @@ public final class SkiaContext {
 	}
 
 	private static Backend createBackend(GpuDevice device) {
-		if ("Vulkan".equals(device.getDeviceInfo().backendName())) {
-			if (device.backend instanceof VulkanDevice vulkanDevice) {
-				return new VulkanBackend(vulkanDevice);
-			}
-			return null;
-		}
-		return new GlBackend();
+		return "OpenGL".equals(device.getBackendName()) ? new GlBackend() : null;
 	}
 
 	private interface Backend extends AutoCloseable {
 
-		Canvas beginFrame(RenderTarget target);
+		Canvas beginFrame(Framebuffer target);
 
 		void endFrame();
 
@@ -267,9 +249,9 @@ public final class SkiaContext {
 		private boolean invalid = true;
 
 		@Override
-		public Canvas beginFrame(RenderTarget target) {
-			GpuTexture colorTexture = target.getColorTexture();
-			if (!(colorTexture instanceof GlTexture texture) || target.width <= 0 || target.height <= 0) {
+		public Canvas beginFrame(Framebuffer target) {
+			GpuTexture colorTexture = target.getColorAttachment();
+			if (!(colorTexture instanceof GlTexture texture) || target.textureWidth <= 0 || target.textureHeight <= 0) {
 				return null;
 			}
 
@@ -277,9 +259,9 @@ public final class SkiaContext {
 				this.context = DirectContext.makeGL();
 			}
 
-			if (this.invalid || this.surface == null || this.textureId != texture.glId()
-					|| this.width != target.width || this.height != target.height) {
-				this.recreate(texture.glId(), target.width, target.height);
+			if (this.invalid || this.surface == null || this.textureId != texture.getGlId()
+					|| this.width != target.textureWidth || this.height != target.textureHeight) {
+				this.recreate(texture.getGlId(), target.textureWidth, target.textureHeight);
 			}
 
 			this.captureState();
@@ -476,200 +458,6 @@ public final class SkiaContext {
 				this.framebuffer = 0;
 			}
 			this.textureId = 0;
-		}
-	}
-
-	private static final class VulkanBackend implements Backend {
-
-		private static final int MINECRAFT_LAYOUT = VK12.VK_IMAGE_LAYOUT_GENERAL;
-		private static final int SKIJA_LAYOUT = VK12.VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-		private static final int BRIDGE_STAGE = VK12.VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-		private static final int BRIDGE_ACCESS = VK12.VK_ACCESS_MEMORY_READ_BIT | VK12.VK_ACCESS_MEMORY_WRITE_BIT;
-
-		private final VulkanDevice device;
-		private DirectContext context;
-		private BackendRenderTarget renderTarget;
-		private BackendTexture backdropTexture;
-		private Image backdropImage;
-		private Surface surface;
-		private VulkanGpuTexture currentTexture;
-		private long image;
-		private int width;
-		private int height;
-		private int format;
-		private int usage;
-		private int mipLevels;
-		private boolean inSkijaLayout;
-		private boolean invalid = true;
-
-		private VulkanBackend(VulkanDevice device) {
-			this.device = device;
-		}
-
-		@Override
-		public Canvas beginFrame(RenderTarget target) {
-			if (!(target.getColorTexture() instanceof VulkanGpuTexture texture) || target.width <= 0 || target.height <= 0) {
-				return null;
-			}
-
-			if (this.context == null) {
-				this.context = DirectContext.makeVulkan(
-						this.device.instance().vkInstance().address(),
-						this.device.vkDevice().getPhysicalDevice().address(),
-						this.device.vkDevice().address(),
-						this.device.graphicsQueue().vkQueue().address(),
-						this.device.graphicsQueue().queueFamilyIndex(),
-						VK.getFunctionProvider().getFunctionAddress("vkGetInstanceProcAddr"),
-						this.device.vkDevice().getCapabilities().vkGetDeviceProcAddr,
-						VK12.VK_API_VERSION_1_2);
-			}
-
-			int vkFormat = VulkanConst.toVk(texture.getFormat());
-			int vkUsage = VulkanConst.textureUsageToVk(texture.usage(), texture.getFormat());
-			if (this.invalid || this.surface == null || this.image != texture.vkImage()
-					|| this.width != target.width || this.height != target.height || this.format != vkFormat
-					|| this.usage != vkUsage || this.mipLevels != texture.getMipLevels()) {
-				this.recreate(texture, target.width, target.height, vkFormat, vkUsage);
-			}
-
-			this.currentTexture = texture;
-			this.device.createCommandEncoder().submit();
-			this.transition(texture, MINECRAFT_LAYOUT, SKIJA_LAYOUT,
-					BRIDGE_STAGE, BRIDGE_ACCESS, BRIDGE_STAGE, BRIDGE_ACCESS);
-			this.inSkijaLayout = true;
-			return this.surface.getCanvas();
-		}
-
-		@Override
-		public void endFrame() {
-			if (this.context == null || this.surface == null || this.image == 0L) {
-				return;
-			}
-
-			try {
-				this.context.flushAndSubmit(this.surface, false);
-			} finally {
-				this.restoreMinecraftLayout();
-			}
-		}
-
-		@Override
-		public DirectContext context() {
-			return this.context;
-		}
-
-		@Override
-		public Image snapshot() {
-			return this.surface != null ? this.surface.makeImageSnapshot() : null;
-		}
-
-		@Override
-		public Image backdrop() {
-			return this.backdropImage;
-		}
-
-		@Override
-		public void invalidate() {
-			this.invalid = true;
-		}
-
-		@Override
-		public void close() {
-			this.restoreMinecraftLayout();
-			if (this.context != null) {
-				this.context.flushAndSubmit(true);
-			}
-			this.device.graphicsQueue().waitIdle();
-			this.closeTarget();
-			if (this.context != null) {
-				this.context.close();
-				this.context = null;
-			}
-		}
-
-		private void recreate(VulkanGpuTexture texture, int width, int height, int format, int usage) {
-			this.device.graphicsQueue().waitIdle();
-			this.closeTarget();
-			this.renderTarget = BackendRenderTarget.makeVulkan(
-					width, height, texture.vkImage(), VK12.VK_IMAGE_TILING_OPTIMAL,
-					SKIJA_LAYOUT, format, usage, 1, texture.getMipLevels());
-			this.surface = Surface.wrapBackendRenderTarget(
-					this.context, this.renderTarget, SurfaceOrigin.BOTTOM_LEFT, ColorType.RGBA_8888, null);
-			VkImageInfo imageInfo = new VkImageInfo(texture.vkImage(), new VulkanAlloc(), VK12.VK_IMAGE_TILING_OPTIMAL,
-					SKIJA_LAYOUT, format, usage, 1, texture.getMipLevels(), this.device.graphicsQueue().queueFamilyIndex(), false, 0);
-			this.backdropTexture = BackendTexture.makeVulkan(width, height, imageInfo);
-			this.backdropImage = Image.borrowTextureFrom(this.context, this.backdropTexture, SurfaceOrigin.BOTTOM_LEFT,
-					ColorType.RGBA_8888, ColorAlphaType.OPAQUE, null, null);
-			this.image = texture.vkImage();
-			this.width = width;
-			this.height = height;
-			this.format = format;
-			this.usage = usage;
-			this.mipLevels = texture.getMipLevels();
-			this.invalid = false;
-		}
-
-		private void restoreMinecraftLayout() {
-			if (!this.inSkijaLayout || this.currentTexture == null || this.currentTexture.vkImage() != this.image) {
-				return;
-			}
-			try {
-				this.transition(this.currentTexture, SKIJA_LAYOUT, MINECRAFT_LAYOUT,
-						BRIDGE_STAGE, BRIDGE_ACCESS, BRIDGE_STAGE, BRIDGE_ACCESS);
-			} finally {
-				this.inSkijaLayout = false;
-			}
-		}
-
-		private void transition(VulkanGpuTexture texture, int oldLayout, int newLayout,
-				int srcStage, int srcAccess, int dstStage, int dstAccess) {
-			VulkanCommandEncoder encoder = this.device.createCommandEncoder();
-			VkCommandBuffer commandBuffer = encoder.allocateAndBeginTransientCommandBuffer();
-			try (MemoryStack stack = MemoryStack.stackPush()) {
-				VkImageMemoryBarrier.Buffer barrier = VkImageMemoryBarrier.calloc(1, stack).sType$Default();
-				barrier.oldLayout(oldLayout);
-				barrier.newLayout(newLayout);
-				barrier.srcAccessMask(srcAccess);
-				barrier.dstAccessMask(dstAccess);
-				barrier.srcQueueFamilyIndex(VK12.VK_QUEUE_FAMILY_IGNORED);
-				barrier.dstQueueFamilyIndex(VK12.VK_QUEUE_FAMILY_IGNORED);
-				barrier.image(texture.vkImage());
-				VkImageSubresourceRange range = barrier.subresourceRange();
-				range.aspectMask(VK12.VK_IMAGE_ASPECT_COLOR_BIT);
-				range.baseMipLevel(0);
-				range.levelCount(texture.getMipLevels());
-				range.baseArrayLayer(0);
-				range.layerCount(1);
-				VK12.vkCmdPipelineBarrier(commandBuffer, srcStage, dstStage, 0, null, null, barrier);
-			}
-			int result = VK12.vkEndCommandBuffer(commandBuffer);
-			if (result != VK12.VK_SUCCESS) {
-				throw new IllegalStateException("Failed to end Skija layout transition command buffer: " + result);
-			}
-			encoder.execute(commandBuffer);
-			encoder.submit();
-		}
-
-		private void closeTarget() {
-			if (this.backdropImage != null) {
-				this.backdropImage.close();
-				this.backdropImage = null;
-			}
-			if (this.backdropTexture != null) {
-				this.backdropTexture.close();
-				this.backdropTexture = null;
-			}
-			if (this.surface != null) {
-				this.surface.close();
-				this.surface = null;
-			}
-			if (this.renderTarget != null) {
-				this.renderTarget.close();
-				this.renderTarget = null;
-			}
-			this.image = 0L;
-			this.currentTexture = null;
-			this.inSkijaLayout = false;
 		}
 	}
 

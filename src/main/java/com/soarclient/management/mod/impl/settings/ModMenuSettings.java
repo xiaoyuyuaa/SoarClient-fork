@@ -1,6 +1,5 @@
 package com.soarclient.management.mod.impl.settings;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.soarclient.Soar;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.ClientTickEvent;
@@ -19,8 +18,9 @@ import org.lwjgl.glfw.GLFW;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.input.KeyEvent;
+import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.input.KeyInput;
+import net.minecraft.client.util.InputUtil;
 
 public class ModMenuSettings extends Mod {
 
@@ -29,7 +29,7 @@ public class ModMenuSettings extends Mod {
     private boolean languageInitialized = false;
 
     private KeybindSetting keybindSetting = new KeybindSetting("setting.keybind", "setting.keybind.description",
-        Icon.KEYBOARD, this, InputConstants.getKey(new KeyEvent(GLFW.GLFW_KEY_RIGHT_SHIFT, 0, 0)));
+        Icon.KEYBOARD, this, InputUtil.fromKeyCode(new KeyInput(GLFW.GLFW_KEY_RIGHT_SHIFT, 0, 0)));
     private BooleanSetting darkModeSetting = new BooleanSetting("setting.darkmode", "setting.darkmode.description",
         Icon.DARK_MODE, this, false);
     private HctColorSetting hctColorSetting = new HctColorSetting("setting.color", "setting.color.description",
@@ -122,7 +122,7 @@ public class ModMenuSettings extends Mod {
             if (modMenu == null) {
                 modMenu = new GuiModMenu().build();
             }
-            client.gui.setScreen(modMenu);
+            client.setScreen(modMenu);
         }
 
         handleLanguageChange();

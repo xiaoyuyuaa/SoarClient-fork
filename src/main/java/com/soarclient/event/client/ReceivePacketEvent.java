@@ -1,7 +1,8 @@
 package com.soarclient.event.client;
 
 import com.soarclient.event.Event;
-import net.minecraft.network.protocol.Packet;
+
+import net.minecraft.network.packet.Packet;
 
 public class ReceivePacketEvent extends Event {
 

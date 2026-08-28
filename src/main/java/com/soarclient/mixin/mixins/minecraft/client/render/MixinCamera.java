@@ -1,16 +1,5 @@
 package com.soarclient.mixin.mixins.minecraft.client.render;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
-import com.soarclient.Soar;
-import com.soarclient.management.mod.impl.player.FreelookMod;
-import com.soarclient.management.mod.impl.player.ZoomMod;
-import com.soarclient.management.mod.impl.render.ActionCameraMod;
-import com.soarclient.mixin.interfaces.IMixinCameraEntity;
-import net.minecraft.client.Camera;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.player.LocalPlayer;
-import net.minecraft.world.entity.Entity;
-import net.minecraft.world.phys.Vec3;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,67 +9,66 @@ import org.spongepowered.asm.mixin.injection.ModifyArgs;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.invoke.arg.Args;
 
+import com.soarclient.Soar;
+import com.soarclient.management.mod.impl.player.FreelookMod;
+import com.soarclient.management.mod.impl.render.ActionCameraMod;
+import com.soarclient.mixin.interfaces.IMixinCameraEntity;
+
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.network.ClientPlayerEntity;
+import net.minecraft.client.render.Camera;
+import net.minecraft.entity.Entity;
+import net.minecraft.util.math.Vec3d;
+import net.minecraft.world.World;
+
 @Mixin(Camera.class)
 public abstract class MixinCamera {
+    @Shadow protected abstract void setPos(double x, double y, double z);
+    @Shadow protected abstract void setRotation(float yaw, float pitch);
 
-    @Shadow
-    private void setRotation(float yaw, float pitch) {
-        throw new AssertionError();
-    }
+    @Unique private boolean firstTime = true;
+    @Unique private Entity focusedEntity;
 
-    @Unique
-    private boolean firstTime = true;
+    @Inject(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setRotation(FF)V", ordinal = 1, shift = At.Shift.AFTER))
+    public void lockRotation(World focusedWorld, Entity cameraEntity, boolean isThirdPerson, boolean isFrontFacing, float tickDelta, CallbackInfo ci) {
 
-    @Inject(method = "alignWithEntity", at = @At("TAIL"))
-    private void applyFreelook(float partialTicks, CallbackInfo ci) {
-        Minecraft minecraft = Minecraft.getInstance();
-        Entity cameraEntity = minecraft.getCameraEntity();
-        FreelookMod freelook = FreelookMod.getInstance();
-        if (freelook != null && freelook.isEnabled() && freelook.isActive() && cameraEntity instanceof LocalPlayer) {
-            IMixinCameraEntity camera = (IMixinCameraEntity) cameraEntity;
-            if (firstTime && minecraft.player != null) {
-                camera.setCameraPitch(minecraft.player.getXRot());
-                camera.setCameraYaw(minecraft.player.getYRot());
+        MinecraftClient client = MinecraftClient.getInstance();
+
+        if (FreelookMod.getInstance().isEnabled() && FreelookMod.getInstance().isActive() && cameraEntity instanceof ClientPlayerEntity) {
+            IMixinCameraEntity cameraOverriddenEntity = (IMixinCameraEntity) cameraEntity;
+
+            if (firstTime && MinecraftClient.getInstance().player != null) {
+                cameraOverriddenEntity.setCameraPitch(client.player.getPitch());
+                cameraOverriddenEntity.setCameraYaw(client.player.getYaw());
                 firstTime = false;
             }
-            setRotation(camera.getCameraYaw(), camera.getCameraPitch());
-        } else {
+            this.setRotation(cameraOverriddenEntity.getCameraYaw(), cameraOverriddenEntity.getCameraPitch());
+
+        }
+        if (FreelookMod.getInstance().isEnabled() && !FreelookMod.getInstance().isActive() && cameraEntity instanceof ClientPlayerEntity) {
             firstTime = true;
         }
     }
 
-    @ModifyArgs(method = "alignWithEntity", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/Camera;setPosition(DDD)V"))
-    private void applyActionCamera(Args args) {
-        Minecraft minecraft = Minecraft.getInstance();
-        Entity focusedEntity = minecraft.getCameraEntity();
+    @Inject(method = "update", at = @At("HEAD"))
+    private void onUpdateHead(World world, Entity focusedEntity, boolean thirdPerson, boolean inverseView, float tickDelta, CallbackInfo info) {
+        this.focusedEntity = focusedEntity;
+    }
+
+    @ModifyArgs(method = "update", at = @At(value = "INVOKE", target = "Lnet/minecraft/client/render/Camera;setPos(DDD)V"))
+    private void onSetCameraPosition(Args args) {
         ActionCameraMod actionCamera = Soar.getInstance().getModManager().getMod(ActionCameraMod.class);
-        if (actionCamera == null || !actionCamera.isEnabled() || !actionCamera.shouldModifyCamera() || focusedEntity == null) {
-            return;
+
+        if (actionCamera != null && actionCamera.isEnabled() && actionCamera.shouldModifyCamera() && focusedEntity != null) {
+            Vec3d playerPos = focusedEntity.getEntityPos();
+            actionCamera.update(playerPos);
+
+            Vec3d cameraPos = actionCamera.getCameraPos();
+            if (cameraPos != null) {
+                args.set(0, cameraPos.x);
+                args.set(1, cameraPos.y);
+                args.set(2, cameraPos.z);
+            }
         }
-
-        Vec3 playerPos = focusedEntity.position();
-        actionCamera.update(playerPos);
-        Vec3 cameraPos = actionCamera.getCameraPos();
-        if (cameraPos != null) {
-            args.set(0, cameraPos.x);
-            args.set(1, cameraPos.y);
-            args.set(2, cameraPos.z);
-        }
-    }
-
-    @ModifyReturnValue(method = "calculateFov(F)F", at = @At("RETURN"))
-    private float modifyWorldFov(float original) {
-        return zoom(original);
-    }
-
-    @ModifyReturnValue(method = "calculateHudFov(F)F", at = @At("RETURN"))
-    private float modifyHudFov(float original) {
-        return zoom(original);
-    }
-
-    @Unique
-    private float zoom(float original) {
-        ZoomMod zoom = ZoomMod.getInstance();
-        return zoom != null && zoom.isEnabled() ? zoom.getFov(original) : original;
     }
 }

@@ -1,6 +1,5 @@
 package com.soarclient.management.cape;
 
-import com.mojang.blaze3d.platform.NativeImage;
 import com.soarclient.skia.Skia;
 import com.soarclient.skia.image.ImageHelper;
 import java.io.Closeable;
@@ -8,15 +7,16 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.renderer.texture.DynamicTexture;
-import net.minecraft.resources.Identifier;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.texture.NativeImageBackedTexture;
+import net.minecraft.util.Identifier;
 
 public class CapeManager implements Closeable {
     private static CapeManager instance;
 
     private final Map<String, Identifier> loadedCapes = Collections.synchronizedMap(new HashMap<>());
-    private final Map<Identifier, DynamicTexture> loadedCapeTextures = Collections.synchronizedMap(new HashMap<>());
+    private final Map<Identifier, NativeImageBackedTexture> loadedCapeTextures = Collections.synchronizedMap(new HashMap<>());
 
     private String selectedCapeId = null;
     private volatile boolean closed;
@@ -65,15 +65,15 @@ public class CapeManager implements Closeable {
                 return;
             }
 
-            Minecraft.getInstance().execute(() -> {
+            MinecraftClient.getInstance().execute(() -> {
                 if (closed) {
                     pixels.close();
                     return;
                 }
-                DynamicTexture nativeImage = new DynamicTexture(() -> "Soar cape " + id, pixels);
-                Identifier identifier = Identifier.fromNamespaceAndPath("soar", namespace + "/" + id);
+                NativeImageBackedTexture nativeImage = new NativeImageBackedTexture(() -> "Soar cape " + id, pixels);
+                Identifier identifier = Identifier.of("soar", namespace + "/" + id);
                 Skia.getImageHelper().put(identifier, ImageHelper.nativeImageToSkijaImage(pixels));
-                Minecraft.getInstance().getTextureManager().register(identifier, nativeImage);
+                MinecraftClient.getInstance().getTextureManager().registerTexture(identifier, nativeImage);
                 loadedCapes.put(id, identifier);
                 loadedCapeTextures.put(identifier, nativeImage);
             });
@@ -91,7 +91,7 @@ public class CapeManager implements Closeable {
         if (cape != null) {
             loadedCapeTextures.remove(cape);
             Skia.getImageHelper().remove(cape);
-            Minecraft.getInstance().getTextureManager().release(cape);
+            MinecraftClient.getInstance().getTextureManager().destroyTexture(cape);
         }
     }
 

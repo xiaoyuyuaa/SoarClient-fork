@@ -6,7 +6,7 @@ import io.github.humbleui.skija.Image;
 import io.github.humbleui.skija.Path;
 import io.github.humbleui.types.RRect;
 import io.github.humbleui.types.Rect;
-import net.minecraft.resources.Identifier;
+import net.minecraft.util.Identifier;
 
 public class CapeRenderer {
 

@@ -3,7 +3,7 @@ package com.soarclient.gui.modmenu.pages.profile;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
-import net.minecraft.client.Minecraft;
+import net.minecraft.client.MinecraftClient;
 import org.lwjgl.glfw.GLFW;
 
 import com.soarclient.Soar;
@@ -45,7 +45,7 @@ public class ProfileAddPage extends SimplePage {
 	@Override
 	public void init() {
 
-		Minecraft client = Minecraft.getInstance();
+		MinecraftClient client = MinecraftClient.getInstance();
 
 		components.clear();
 		super.init();

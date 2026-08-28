@@ -1,17 +1,18 @@
 package com.soarclient.management.mod.settings.impl;
 
-import com.mojang.blaze3d.platform.InputConstants;
 import com.soarclient.Soar;
 import com.soarclient.management.mod.Mod;
 import com.soarclient.management.mod.settings.Setting;
 
+import net.minecraft.client.util.InputUtil;
+
 public class KeybindSetting extends Setting {
 
-	private InputConstants.Key defaultKey, key;
+	private InputUtil.Key defaultKey, key;
 	private boolean keyDown;
 	private int pressTime;
 
-	public KeybindSetting(String name, String description, String icon, Mod parent, InputConstants.Key key) {
+	public KeybindSetting(String name, String description, String icon, Mod parent, InputUtil.Key key) {
 		super(name, description, icon, parent);
 
 		this.defaultKey = key;
@@ -25,15 +26,15 @@ public class KeybindSetting extends Setting {
 		this.key = this.defaultKey;
 	}
 
-	public InputConstants.Key getKey() {
+	public InputUtil.Key getKey() {
 		return key;
 	}
 
-	public void setKey(InputConstants.Key key) {
+	public void setKey(InputUtil.Key key) {
 		this.key = key;
 	}
 
-	public InputConstants.Key getDefaultKey() {
+	public InputUtil.Key getDefaultKey() {
 		return defaultKey;
 	}
 

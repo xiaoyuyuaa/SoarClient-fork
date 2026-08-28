@@ -1,7 +1,7 @@
 {
 	"required": true,
 	"package": "com.soarclient.mixin.mixins",
-	"compatibilityLevel": "JAVA_25",
+	"compatibilityLevel": "JAVA_21",
 	"client": [
 		"minecraft.client.MixinKeyboard",
 		"minecraft.client.MixinMinecraftClient",
@@ -26,7 +26,10 @@
 		"minecraft.client.sound.MixinSoundSystem",
 		"minecraft.entity.MixinEntity",
 		"minecraft.entity.MixinLivingEntity",
+		"minecraft.entity.MixinPlayerEntity",
+		"minecraft.entity.MixinPlayerLikeEntity",
 		"minecraft.network.MixinClientConnection",
+		"minecraft.network.packet.PlayerInteractEntityC2SPacketAccessor",
 		"minecraft.text.MixinTextVisitFactory",
 		"minecraft.world.MixinBiome",
 		"minecraft.world.MixinClientWorldProperties",
