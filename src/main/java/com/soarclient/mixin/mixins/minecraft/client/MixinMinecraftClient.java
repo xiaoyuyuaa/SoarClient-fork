@@ -5,7 +5,6 @@ import com.soarclient.Soar;
 import com.soarclient.event.EventBus;
 import com.soarclient.event.client.ClientTickEvent;
 import com.soarclient.event.client.GameLoopEvent;
-import com.soarclient.management.config.ConfigType;
 import com.soarclient.management.mod.impl.player.HitDelayFixMod;
 import com.soarclient.management.mod.impl.player.OldAnimationsMod;
 import com.soarclient.mixin.interfaces.IMixinLivingEntity;
@@ -48,11 +47,6 @@ public abstract class MixinMinecraftClient implements IMixinMinecraftClient {
     private void onInit(RunArgs config, CallbackInfo ci) {
         assetDir = config.directories.assetDir;
         Soar.getInstance().start();
-    }
-
-    @Inject(method = "scheduleStop", at = @At("HEAD"))
-    private void onStop(CallbackInfo ci) {
-        Soar.getInstance().getConfigManager().save(ConfigType.MOD);
     }
 
     @Inject(method = "handleBlockBreaking(Z)V", at = @At("HEAD"))
