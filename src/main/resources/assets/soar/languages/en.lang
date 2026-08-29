@@ -50,13 +50,7 @@ setting.showexperiencebar.description=Show Experience Bar
 setting.shownumericalvalues=Show Numerical Values
 setting.shownumericalvalues.description=Show Numerical
 
-menu.singleplayer=Singleplayer
-menu.multiplayer=Multiplayer
-menu.realms=Minecraft Realms
-menu.options=Options
-menu.quit=Quit Game
 gui.done=Done
-gui.mainmenu.customization=Main Menu Customization
 
 language.english=English  
 language.chinese=中文    

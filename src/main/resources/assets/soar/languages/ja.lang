@@ -49,13 +49,7 @@ setting.showexperiencebar.description=経験値バーを表示
 setting.shownumericalvalues=数値を表示
 setting.shownumericalvalues.description=數值
 
-menu.singleplayer=シングルプレイ
-menu.multiplayer=マルチプレイ
-menu.realms=Minecraft Realms
-menu.options=設定
-menu.quit=ゲーム終了
 gui.done=完了
-gui.mainmenu.customization=メインメニューの設定
 
 mod.watermark.name=透かし
 mod.watermark.description=カスタム透かしテキストを表示する
