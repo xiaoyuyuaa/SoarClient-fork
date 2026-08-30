@@ -62,6 +62,10 @@ public class Soar {
     }
 
     public void close() {
+        if (configManager != null) {
+            configManager.saveAll();
+        }
+
         if (capeManager != null) {
             capeManager.close();
             capeManager = null;

@@ -38,6 +38,12 @@ public class ConfigManager {
 		}
 	}
 
+	public void saveAll() {
+		for (Config config : configs) {
+			save(config.getType());
+		}
+	}
+
 	public void load(ConfigType type) {
 
 		Config config = getConfig(type);
